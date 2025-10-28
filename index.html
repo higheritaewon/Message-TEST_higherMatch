@@ -70,6 +70,15 @@
   .btn-focus{outline:2px solid var(--yellow)}
   .btn-danger{background:var(--danger)}
   .btn-success{background:var(--success); color:#0e2824}
+
+  /* ✅ 채팅 보내기 버튼 전용 색상 오버라이드 */
+  #chat-send{
+    background:##2a32bd;      /* 원하는 색상으로 변경 */
+    color:#ffffff;
+    border-color:#5960c9;
+  }
+#chat-send:hover{ filter:brightness(1.16); }
+  
   .badge{
     display:inline-block; padding:2px 8px; border:1px solid rgba(255,255,255,.15);
     border-radius:999px; font-size:18px;
@@ -1734,6 +1743,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
