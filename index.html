@@ -1018,8 +1018,8 @@
   meta.className = "msg-meta";
   meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
 
-  // 조립: [wrap(풍선껌)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
-  wrap.appendChild(풍선껌);
+  // 조립: [wrap(bubble)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
+  wrap.appendChild(bubble);
   row.appendChild(wrap);
   row.appendChild(meta);
 
@@ -1685,6 +1685,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
