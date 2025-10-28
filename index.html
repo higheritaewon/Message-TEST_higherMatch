@@ -153,11 +153,14 @@
 }
 
 /* 메시지 한 줄(말풍선+메타) */
+/* 한 메시지 줄 */
 .msg-row{
+  position: relative;     /* ✅ 시간 절대배치 기준 */
   display:flex;
-  flex-direction:row;      /* ← 절대 column 방지 */
-  align-items:flex-end;    /* 시간표시를 말풍선 하단 기준으로 맞춤 */
-  gap:6px;
+  flex-direction:row;
+  align-items:flex-end;
+  gap:0;                  /* 시간 옆여백 제거 */
+  margin-bottom:18px;     /* 시간 들어갈 공간 확보 */
 }
 .msg-row.me{ justify-content:flex-end; }
 .msg-row.other{ justify-content:flex-start; }
@@ -173,62 +176,73 @@
   .msg-wrap{ max-width:80%; }
 }
 
-/* 말풍선 본체 */
+/* 말풍선: 꼬리용 기준점 */
 .bubble{
-  color: #21211e;
-  position: relative;          /* 꼬리 (::after) 위치 기준용 */
-  display: block;
-  width: fit-content;          /* 텍스트 길이에 맞게 */
-  max-width: 100%;             /* 너무 길면 자동 줄바꿈 */
-  min-width: 36px;
-  padding: 10px 14px;
-  border-radius: 18px;         /* 전체적으로 둥글게 */
-  word-break: break-word;
-  overflow-wrap: break-word;
-  white-space: pre-wrap;
+  position: relative;            /* ✅꼬리 기준 */
+  display:inline-block;
+  max-width:100%;
+  padding:10px 12px;
+  border-radius:50px;             /* 둥근 모서리 */
+  word-break:break-word;
+  overflow-wrap:break-word;
+  white-space:pre-wrap;
 }
-.me{ 
-  background: #ffd94d;         /* 내 말풍선 (오른쪽) */
-  align-self: flex-end;
+
+/* 래퍼는 꼬리 안 잘리게 */
+.msg-wrap{ 
+  max-width:76%;
+  display:block;
+  overflow: visible;              /* ✅꼬리 보이도록 */
 }
-.other{ 
-  background: #e6e7f7;         /* 상대방 말풍선 (왼쪽) */
-  align-self: flex-start;
+
+/* 색상(원하는 값으로 유지) */
+.bubble.me{
+  background: var(--yellow);
+  color:#1a1a1a;
 }
-/* 시간/읽음 메타 (항상 옆, 줄바꿈 없음) */
+.bubble.other{
+  background:#e9ebfa;            /* 예시: 연보라 */
+  color:#1a1a1a;
+}
+
+/* ⬅️ 왼쪽 꼬리(상대) */
+.bubble.other::after{
+  content:"";
+  position:absolute;
+  left:-8px;                      /* 꼬리가 밖으로 살짝 나가도록 */
+  bottom:10px;
+  border-width:8px 10px 8px 0;
+  border-style:solid;
+  border-color: transparent #e9ebfa transparent transparent;  /* 배경색과 동일 */
+}
+
+/* ➡️ 오른쪽 꼬리(나) */
+.bubble.me::after{
+  content:"";
+  position:absolute;
+  right:-8px;
+  bottom:10px;
+  border-width:8px 0 8px 10px;
+  border-style:solid;
+  border-color: transparent transparent transparent var(--yellow); /* 배경색과 동일 */
+}
+  
+/* 시간·읽음: 말풍선 아래에, 줄 너비에 영향 X */
 .msg-meta{
-  flex:0 0 auto;           /* 폭 고정, 줄바꿈 금지 */
+  position:absolute;      /* ✅ 레이아웃 비참여 → 말풍선 폭에 영향 없음 */
+  bottom:-16px;           /* 말풍선 아래로 */
   white-space:nowrap;
   font-size:.75em;
   color:var(--muted);
-  margin:0 2px 2px 2px;
   line-height:1.1;
 }
-  /* 🩵 왼쪽(상대방) 꼬리 */
-.other.bubble::after{
-  content: "";
-  position: absolute;
-  left: -6px;       /* 꼬리가 바깥으로 나가게 */
-  bottom: 6px;
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-right: 8px solid #e6e7f7; /* ← 상대방 말풍선 색상 */
-}
 
-/* 💛 오른쪽(내 말풍선) 꼬리 */
-.me.bubble::after{
-  content: "";
-  position: absolute;
-  right: -6px;
-  bottom: 6px;
-  width: 0;
-  height: 0;
-  border-top: 6px solid transparent;
-  border-bottom: 6px solid transparent;
-  border-left: 8px solid #ffd94d;  /* ← 내 말풍선 색상 */
-}
+/* 왼쪽 메시지: 시간은 왼쪽 아래 */
+.msg-row.other .msg-meta{ left:6px; }
+
+/* 오른쪽 메시지: 시간은 오른쪽 아래 */
+.msg-row.me .msg-meta{ right:6px; text-align:right; }
+
   .msg-toolbar{ display:flex; gap:10px; margin-top:10px; }
   .menu-msg-button{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -1718,6 +1732,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
