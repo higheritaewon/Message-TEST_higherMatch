@@ -90,6 +90,12 @@
     border-color:rgba(255,255,255,.15);
     color:#fff;
   }
+  #msg-badge{
+    background:#ff6b6b;          
+    border-color:rgba(255,255,255,.15);
+    color:#fff;
+  }
+  
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .tile{
     display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
@@ -308,7 +314,7 @@
     <!-- ✅ 메뉴판 아래, 로그아웃 사이: 메세지함 버튼 (뱃지 포함) -->
     <div class="spacer"></div>
     <button class="menu-msg-button" id="btn-messages">
-      <span style="font-family:'Do Hyeon',sans-serif;font-size:22px;">✉️ 메세지함</span>
+      <span style="font-family:'Do Hyeon',sans-serif;font-size:26px;">메세지함 ✉️</span>
       <span id="msg-badge" class="badge hidden">0</span>
     </button>
 
@@ -1743,6 +1749,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
