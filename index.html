@@ -162,25 +162,39 @@
 .msg-row.me{ justify-content:flex-end; }
 .msg-row.other{ justify-content:flex-start; }
 
-/* 말풍선만 담는 래퍼 (폭 제한은 여기서) */
+/* 말풍선 래퍼: 내용만큼만 가로 차지(늘어나지 않음), 상한만 둠 */
 .msg-wrap{
-  max-width:76%;           /* 화면폭의 3/4 정도만 차지 */
-  display:block;           /* inline 요소 폭 깨짐 방지 */
+  flex:0 0 auto;        /* 래퍼가 남는 공간을 먹고 늘어나지 않게 */
+  display:inline-flex;  /* 내용 너비만큼만 차지 */
+  align-items:flex-end; /* 메타(시간)와 하단 정렬 */
+  max-width:76%;        /* 화면 대비 최대 폭(카톡 느낌) */
+}
+@media (max-width:420px){
+  .msg-wrap{ max-width:80%; }
 }
 
 /* 말풍선 본체 */
 .bubble{
-  display:inline-block;    /* 텍스트 옆으로 세로 쌓임 방지 */
-  max-width:100%;          /* 래퍼 폭 안에서만 줄바꿈 */
-  padding:8px 10px;
-  border-radius:12px;
-  word-break:break-word;
-  overflow-wrap:break-word;
-  white-space:pre-wrap;    /* 개행/이모지 안전 */
+  color: #21211e;
+  position: relative;          /* 꼬리 (::after) 위치 기준용 */
+  display: block;
+  width: fit-content;          /* 텍스트 길이에 맞게 */
+  max-width: 100%;             /* 너무 길면 자동 줄바꿈 */
+  min-width: 36px;
+  padding: 10px 14px;
+  border-radius: 18px;         /* 전체적으로 둥글게 */
+  word-break: break-word;
+  overflow-wrap: break-word;
+  white-space: pre-wrap;
 }
-.me{ background:#1a2b63; }
-.other{ background:#26336d; }
-
+.me{ 
+  background: #ffd94d;         /* 내 말풍선 (오른쪽) */
+  align-self: flex-end;
+}
+.other{ 
+  background: #e6e7f7;         /* 상대방 말풍선 (왼쪽) */
+  align-self: flex-start;
+}
 /* 시간/읽음 메타 (항상 옆, 줄바꿈 없음) */
 .msg-meta{
   flex:0 0 auto;           /* 폭 고정, 줄바꿈 금지 */
@@ -190,12 +204,31 @@
   margin:0 2px 2px 2px;
   line-height:1.1;
 }
-
-/* 작은 화면에서 말풍선 조금 더 넓게 */
-@media (max-width:420px){
-  .msg-wrap{ max-width:80%; }
+  /* 🩵 왼쪽(상대방) 꼬리 */
+.other.bubble::after{
+  content: "";
+  position: absolute;
+  left: -6px;       /* 꼬리가 바깥으로 나가게 */
+  bottom: 6px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-right: 8px solid #e6e7f7; /* ← 상대방 말풍선 색상 */
 }
-  
+
+/* 💛 오른쪽(내 말풍선) 꼬리 */
+.me.bubble::after{
+  content: "";
+  position: absolute;
+  right: -6px;
+  bottom: 6px;
+  width: 0;
+  height: 0;
+  border-top: 6px solid transparent;
+  border-bottom: 6px solid transparent;
+  border-left: 8px solid #ffd94d;  /* ← 내 말풍선 색상 */
+}
   .msg-toolbar{ display:flex; gap:10px; margin-top:10px; }
   .menu-msg-button{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -1685,6 +1718,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
