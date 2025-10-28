@@ -695,6 +695,17 @@
     if(fromLike){ fromLike.value = currentUid ? `내 번호: ${currentUid}` : ""; }
   }
 
+  // ✅ 12시간(오전/오후) 포맷터
+  function formatTime12(dt){
+    let h = dt.getHours();
+    const m = dt.getMinutes();
+    const ampm = (h < 12) ? "오전" : "오후";
+    h = h % 12;
+    if (h === 0) h = 12;           // 0시는 12시로 표시
+    const mm = String(m).padStart(2, "0");
+    return `${ampm} ${h}:${mm}`;
+}
+
   // ===================== DB 유틸 =====================
   const r = (p)=> ref(db, `events/${EVENT_ID}/${p}`);
   async function getUser(uid){ const snap = await get(r(`users/${uid}`)); return snap.exists()? snap.val(): null; }
@@ -1050,9 +1061,7 @@
 
   // 시간/읽음
   const dt = new Date(m.time || 0);
-  const hh = String(dt.getHours()).padStart(2,"0");
-  const mm = String(dt.getMinutes()).padStart(2,"0");
-  const timeStr = `${hh}:${mm}`;
+  const timeStr = formatTime12(dt);   // ✅ 오전/오후 12시간제 표시
   const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
   const meta = document.createElement("span");
   meta.className = "msg-meta";
@@ -1725,6 +1734,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
