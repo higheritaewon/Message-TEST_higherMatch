@@ -139,37 +139,63 @@
   .counter-banner .cap{display:block; margin-top:6px; font-size:16px; color:var(--muted)}
   .counter-banner.exhausted{background:#2a0e12; border-color:#3b1318}
 
-  /* ===== 채팅 UI ===== */
+/* ===== 채팅 UI (안정 레이아웃) ===== */
 .chat-box{
-  max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
-  padding:8px; border-radius:12px; background:#0c1433; border:1px solid rgba(255,255,255,.08);
+  max-height:420px;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:8px;
+  border-radius:12px;
+  background:#0c1433;
+  border:1px solid rgba(255,255,255,.08);
 }
 
-/* ✅ 줄바꿈/폭 보정 */
-.msg-row{ display:flex; align-items:flex-end; gap:6px; }
+/* 메시지 한 줄(말풍선+메타) */
+.msg-row{
+  display:flex;
+  flex-direction:row;      /* ← 절대 column 방지 */
+  align-items:flex-end;    /* 시간표시를 말풍선 하단 기준으로 맞춤 */
+  gap:6px;
+}
 .msg-row.me{ justify-content:flex-end; }
 .msg-row.other{ justify-content:flex-start; }
 
-.bubble{
-  max-width: 100%; /* 메타(시간/읽음) 영역 확보 */
-  padding:8px 10px; border-radius:12px; word-break:break-word;
-  flex: 1 1 auto;
+/* 말풍선만 담는 래퍼 (폭 제한은 여기서) */
+.msg-wrap{
+  max-width:76%;           /* 화면폭의 3/4 정도만 차지 */
+  display:block;           /* inline 요소 폭 깨짐 방지 */
 }
-.me{ align-self:flex-end; background:#1a2b63; }
-.other{ align-self:flex-start; background:#26336d; }
 
+/* 말풍선 본체 */
+.bubble{
+  display:inline-block;    /* 텍스트 옆으로 세로 쌓임 방지 */
+  max-width:100%;          /* 래퍼 폭 안에서만 줄바꿈 */
+  padding:8px 10px;
+  border-radius:12px;
+  word-break:break-word;
+  overflow-wrap:break-word;
+  white-space:pre-wrap;    /* 개행/이모지 안전 */
+}
+.me{ background:#1a2b63; }
+.other{ background:#26336d; }
+
+/* 시간/읽음 메타 (항상 옆, 줄바꿈 없음) */
 .msg-meta{
-  font-size:0.75em;
+  flex:0 0 auto;           /* 폭 고정, 줄바꿈 금지 */
+  white-space:nowrap;
+  font-size:.75em;
   color:var(--muted);
   margin:0 2px 2px 2px;
-  white-space:nowrap;
-  line-height:1;
-  flex:0 0 auto;
+  line-height:1.1;
 }
 
-@media (max-width: 420px){
-  .bubble{ max-width: calc(100% - 68px); }
+/* 작은 화면에서 말풍선 조금 더 넓게 */
+@media (max-width:420px){
+  .msg-wrap{ max-width:80%; }
 }
+  
   .msg-toolbar{ display:flex; gap:10px; margin-top:10px; }
   .menu-msg-button{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -970,41 +996,35 @@
     .sort((a,b)=>a.time-b.time);
 
   msgs.forEach(m=>{
-    // 행 컨테이너
-    const row = document.createElement("div");
-    row.className = "msg-row " + (m.from===currentUid ? "me":"other");
+  const row = document.createElement("div");
+  row.className = "msg-row " + (m.from===currentUid ? "me" : "other");
 
-    // 말풍선
-    const bubble = document.createElement("div");
-    bubble.className = "bubble " + (m.from===currentUid ? "me":"other");
-    bubble.textContent = m.text;
+  // 말풍선 래퍼 (폭 제한 담당)
+  const wrap = document.createElement("div");
+  wrap.className = "msg-wrap";
 
-    // 시간/읽음 메타
-    const dt = new Date(m.time || 0);
-    const hh = String(dt.getHours()).padStart(2,"0");
-    const mm = String(dt.getMinutes()).padStart(2,"0");
-    const timeStr = `${hh}:${mm}`;
-    const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
-    const meta = document.createElement("span");
-    meta.className = "msg-meta";
-    meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
+  // 말풍선
+  const bubble = document.createElement("div");
+  bubble.className = "bubble " + (m.from===currentUid ? "me" : "other");
+  bubble.textContent = m.text;
 
-    // 조립: 말풍선 옆에 메타
-    const wrap = document.createElement("div");
-    wrap.style.display = "inline-flex";
-    wrap.style.flexDirection = "column";
-    wrap.style.alignItems = (m.from === currentUid) ? "flex-end" : "flex-start";
+  // 시간/읽음
+  const dt = new Date(m.time || 0);
+  const hh = String(dt.getHours()).padStart(2,"0");
+  const mm = String(dt.getMinutes()).padStart(2,"0");
+  const timeStr = `${hh}:${mm}`;
+  const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
+  const meta = document.createElement("span");
+  meta.className = "msg-meta";
+  meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
 
-    wrap.appendChild(bubble);
+  // 조립: [wrap(풍선껌)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
+  wrap.appendChild(풍선껌);
+  row.appendChild(wrap);
+  row.appendChild(meta);
 
-    const metaWrap = document.createElement("span");
-    metaWrap.className = "msg-meta";
-    metaWrap.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
-    wrap.appendChild(metaWrap);
-
-row.appendChild(wrap);
-    chatBox.appendChild(row);
-  });
+  chatBox.appendChild(row);
+});
 
   chatBox.scrollTop = chatBox.scrollHeight;
 
@@ -1665,6 +1685,7 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
 
