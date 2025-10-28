@@ -77,7 +77,7 @@
   }
   /* ✅ 대화목록용 빨간 뱃지 */
   .badge-red{
-    background:#b91c1c;           /* 진한 빨강 */
+    background:#ff6b6b;          
     border-color:rgba(255,255,255,.15);
     color:#fff;
   }
@@ -140,23 +140,36 @@
   .counter-banner.exhausted{background:#2a0e12; border-color:#3b1318}
 
   /* ===== 채팅 UI ===== */
-  .chat-box{
-    max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
-    padding:8px; border-radius:12px; background:#0c1433; border:1px solid rgba(255,255,255,.08);
-  }
-    /* ✅ 채팅 말풍선 + 메타(시간/읽음) 배치 */
-  .msg-row{ display:flex; gap:6px; align-items:flex-end; }
-  .msg-row.me{ justify-content:flex-end; }
-  .msg-row.other{ justify-content:flex-start; }
-  .msg-meta{
-    font-size:0.75em;   /* 대략 본문 대비 1/2~3/4 */
-    color:var(--muted);
-    margin:0 2px 2px 2px;
-    white-space:nowrap;
-  }
-  .bubble{ max-width:72%; padding:8px 10px; border-radius:12px; word-break:break-word; }
-  .me{ align-self:flex-end; background:#1a2b63; }
-  .other{ align-self:flex-start; background:#26336d; }
+.chat-box{
+  max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
+  padding:8px; border-radius:12px; background:#0c1433; border:1px solid rgba(255,255,255,.08);
+}
+
+/* ✅ 줄바꿈/폭 보정 */
+.msg-row{ display:flex; align-items:flex-end; gap:6px; }
+.msg-row.me{ justify-content:flex-end; }
+.msg-row.other{ justify-content:flex-start; }
+
+.bubble{
+  max-width: 100%; /* 메타(시간/읽음) 영역 확보 */
+  padding:8px 10px; border-radius:12px; word-break:break-word;
+  flex: 1 1 auto;
+}
+.me{ align-self:flex-end; background:#1a2b63; }
+.other{ align-self:flex-start; background:#26336d; }
+
+.msg-meta{
+  font-size:0.75em;
+  color:var(--muted);
+  margin:0 2px 2px 2px;
+  white-space:nowrap;
+  line-height:1;
+  flex:0 0 auto;
+}
+
+@media (max-width: 420px){
+  .bubble{ max-width: calc(100% - 68px); }
+}
   .msg-toolbar{ display:flex; gap:10px; margin-top:10px; }
   .menu-msg-button{
     display:flex; align-items:center; justify-content:center; gap:8px;
@@ -220,7 +233,7 @@
     <!-- ✅ 메뉴판 아래, 로그아웃 사이: 메세지함 버튼 (뱃지 포함) -->
     <div class="spacer"></div>
     <button class="menu-msg-button" id="btn-messages">
-      <span style="font-family:'Do Hyeon',sans-serif;font-size:22px;">💬 메세지함</span>
+      <span style="font-family:'Do Hyeon',sans-serif;font-size:22px;">✉️ 메세지함</span>
       <span id="msg-badge" class="badge hidden">0</span>
     </button>
 
@@ -325,7 +338,7 @@
   <!-- ===== [PAGE] 메세지함 ===== -->
   <section id="page-messages" class="card hidden">
     <img class="logo-mini" id="logo-mini-messages" alt="로고" />
-    <h2 class="page-title">💬 메세지함</h2>
+    <h2 class="page-title">✉️ 메세지함</h2>
 
     <div id="message-list" class="list"></div>
     <p id="no-messages" class="muted small center hidden">아직 매치된 사람이 없습니다.</p>
@@ -855,14 +868,18 @@
     await set(r(`likesReceived/${toId}/${currentUid}`), { ok:true, updatedAt: Date.now(), seen:false });
 
     const reciprocal = await get(r(`likes/${toId}/${currentUid}`));
-    if(reciprocal.exists()){
-      const payload = {status:"matched", updatedAt: Date.now()};
-      await update(r(`matches/${currentUid}/${toId}`), payload);
-      await update(r(`matches/${toId}/${currentUid}`), payload);
-      await alertModal(`${toId}번 사용자와 MATCH가 되었습니다!\n⭐ ⭐ ⭐ ⭐ ⭐\n매치 현황을 확인해 주시기 바랍니다.`);
-    }else{
-      await alertModal("LIKE가 전송되었습니다.");
-    }
+    if (reciprocal.exists()){
+  const now = Date.now();
+  const payloadSender   = { status: "matched", updatedAt: now, notified: true  };  // 보낸 사람은 즉시 봄
+  const payloadReceiver = { status: "matched", updatedAt: now, notified: false };  // 받은 사람은 나중에 반드시 팝업
+
+  await update(r(`matches/${currentUid}/${toId}`), payloadSender);
+  await update(r(`matches/${toId}/${currentUid}`), payloadReceiver);
+
+  await alertModal(`${toId}번 사용자와 MATCH가 되었습니다!\n⭐ ⭐ ⭐ ⭐ ⭐\n매치 현황을 확인해 주시기 바랍니다.`);
+} else {
+  await alertModal("LIKE가 전송되었습니다.");
+}
 
     await refreshLikeCounters();
   }
@@ -973,8 +990,19 @@
     meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
 
     // 조립: 말풍선 옆에 메타
-    row.appendChild(bubble);
-    row.appendChild(meta);
+    const wrap = document.createElement("div");
+    wrap.style.display = "inline-flex";
+    wrap.style.flexDirection = "column";
+    wrap.style.alignItems = (m.from === currentUid) ? "flex-end" : "flex-start";
+
+    wrap.appendChild(bubble);
+
+    const metaWrap = document.createElement("span");
+    metaWrap.className = "msg-meta";
+    metaWrap.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
+    wrap.appendChild(metaWrap);
+
+row.appendChild(wrap);
     chatBox.appendChild(row);
   });
 
@@ -1019,7 +1047,7 @@
       return alertModal("매치된 사용자에게만 메세지를 보낼 수 있습니다.");
     }
 
-// 내 전송 횟수(상대별) 제한: 10회
+// 내 전송 횟수(상대별) 제한: 7회
 const pairKey = makeChatKey(currentUid, toUid);
 const path = r(`messages/${pairKey}`);
 const s = await get(path);
@@ -1028,7 +1056,7 @@ if(s.exists()){
   const vals = s.val();
   for(const id in vals){ if(vals[id].from===currentUid) myCount++; }
 }
-if(myCount >= 10){
+if(myCount >= 7){
   const ok = await confirmModal(
     "더 많은 대화를 원하시면 만남을 요청하세요!",
     { okText:"만남 요청하기", cancelText:"닫기", title:"메세지 한도 초과", okClass:"btn-success" } // ✅ 색상 통일
@@ -1097,10 +1125,19 @@ if(myCount >= 10){
     setBadge(unread);
   }
   function setBadge(n){
-    const badge=$("#msg-badge");
-    if(n>0){ badge.textContent=String(n); badge.classList.remove("hidden"); }
-    else{ badge.classList.add("hidden"); }
+  const badge = $("#msg-badge");
+  if(!badge) return;
+
+  // 기본 표시/클래스 정리
+  badge.classList.add("badge");       // 보장
+  badge.classList.add("badge-red");   // ✅ 항상 빨간색
+  if (n > 0){
+    badge.textContent = String(n);
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
   }
+}
 
   // ===== 나의 MATCH 현황 (+ 보류 처리) =====
   async function loadMatches(){
@@ -1239,19 +1276,36 @@ if(myCount >= 10){
     if(!currentUid) return;
 
     // 내 매치 상태 변화
-    const off1 = onValue(r(`matches/${currentUid}`), snap=>{
-      if(!snap.exists()) return;
-      const data = snap.val();
-      Object.entries(data).forEach(([other, m])=>{
-        if(m && m.status==="matched" && (Date.now()-m.updatedAt)<4000){
-          alertModal(`${other}번 사용자와 MATCH가 되었습니다!\n⭐ ⭐ ⭐ ⭐ ⭐\n매치 현황을 확인해 주시기 바랍니다.`);
-        }
-        if(m && m.status==="meeting_accepted" && (Date.now()-m.updatedAt)<4000){
-          alertModal("만남이 성사되었습니다.\n👉 💛 👈\n지금바로 만남을 위해 직원에게 문의하세요!");
-        }
-      });
-      if(!pages.matches.classList.contains("hidden")) loadMatches();
-    });
+    const off1 = onValue(r(`matches/${currentUid}`), async (snap)=>{
+  if(!snap.exists()) return;
+  const data = snap.val();
+
+  for (const [other, m] of Object.entries(data)) {
+    if (!m) continue;
+
+    // ✅ 1) 아직 내가 못 본 매치라면, 시간 경과와 무관하게 반드시 한 번 알림
+    if (m.status === "matched" && m.notified !== true) {
+      await alertModal(`${other}번 사용자와 MATCH가 되었습니다!\n⭐ ⭐ ⭐ ⭐ ⭐\n매치 현황을 확인해 주시기 바랍니다.`);
+      await update(r(`matches/${currentUid}/${other}`), { notified: true, updatedAt: Date.now() });
+      continue; // 아래 시간기반 알림은 스킵
+    }
+
+    // (선택) 기존 4초 내 즉시 알림 로직 유지
+    if (m.status === "matched" && (Date.now() - (m.updatedAt||0)) < 4000) {
+      await alertModal(`${other}번 사용자와 MATCH가 되었습니다!\n⭐ ⭐ ⭐ ⭐ ⭐\n매치 현황을 확인해 주시기 바랍니다.`);
+      if (m.notified !== true) {
+        await update(r(`matches/${currentUid}/${other}`), { notified: true });
+      }
+    }
+
+    // 기존 meeting_accepted 알림은 유지
+    if (m && m.status === "meeting_accepted" && (Date.now() - (m.updatedAt||0)) < 4000) {
+      await alertModal("만남이 성사되었습니다.\n👉 💛 👈\n지금바로 만남을 위해 직원에게 문의하세요!");
+    }
+  }
+
+  if(!pages.matches.classList.contains("hidden")) loadMatches();
+});
     detachFns.push(()=>off1());
 
     // 내가 받은 만남 요청
@@ -1611,6 +1665,7 @@ if(myCount >= 10){
 </body>
 
 </html>
+
 
 
 
