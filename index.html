@@ -75,7 +75,12 @@
     border-radius:999px; font-size:18px;
     background:#0e1f4a;
   }
-
+  /* ✅ 대화목록용 빨간 뱃지 */
+  .badge-red{
+    background:#b91c1c;           /* 진한 빨강 */
+    border-color:rgba(255,255,255,.15);
+    color:#fff;
+  }
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .tile{
     display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
@@ -138,6 +143,16 @@
   .chat-box{
     max-height:420px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
     padding:8px; border-radius:12px; background:#0c1433; border:1px solid rgba(255,255,255,.08);
+  }
+    /* ✅ 채팅 말풍선 + 메타(시간/읽음) 배치 */
+  .msg-row{ display:flex; gap:6px; align-items:flex-end; }
+  .msg-row.me{ justify-content:flex-end; }
+  .msg-row.other{ justify-content:flex-start; }
+  .msg-meta{
+    font-size:0.75em;   /* 대략 본문 대비 1/2~3/4 */
+    color:var(--muted);
+    margin:0 2px 2px 2px;
+    white-space:nowrap;
   }
   .bubble{ max-width:72%; padding:8px 10px; border-radius:12px; word-break:break-word; }
   .me{ align-self:flex-end; background:#1a2b63; }
@@ -420,6 +435,23 @@
       <button id="admin-reset" class="btn-danger">모든 계정/데이터 완전 삭제</button>
     </div>
 
+        <!-- 랜덤 번호 뽑기 (✅ 복구) -->
+    <div id="admin-panel-draw" class="hidden" style="margin-top:12px;">
+      <h3>랜덤 번호 뽑기</h3>
+      <p class="small muted">현재 등록된 번호들 중에서 중복 없이 각각의 풀에서 추첨됩니다.</p>
+      <div class="row" style="margin-top:8px;">
+        <button id="draw-host" class="btn-primary">🎤 진행자용<br>랜덤번호 뽑기</button>
+        <button id="draw-guest" class="btn-primary">🎉 참가자용<br>랜덤번호 뽑기</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="draw-reset" class="btn">추첨 초기화</button>
+      </div>
+      <div style="margin-top:10px;">
+        <div><strong>진행자용 이미 뽑힌 번호:</strong> <span id="draw-host-drawn" class="badge"></span></div>
+        <div style="margin-top:6px;"><strong>참가자용 이미 뽑힌 번호:</strong> <span id="draw-guest-drawn" class="badge"></span></div>
+      </div>
+    </div>
+    
     <div class="spacer"></div>
     <button id="admin-logout" class="btn small">관리자 로그아웃</button>
   </section>
@@ -536,19 +568,24 @@
       show(modal);
     });
   }
-  function confirmModal(message, {okText="확인", cancelText="취소", title="확인"}={}){
-    if (loadingEl) hide(loadingEl);
-    return new Promise(res=>{
-      modalTitle.textContent = title;
-      modalMsg.textContent = String(message).replace(/\n{3,}/g, "\n\n");
-      modalActions.innerHTML = `
-        <button id="modal-cancel" class="btn">${cancelText}</button>
-        <button id="modal-ok" class="btn-primary">${okText}</button>`;
-      $("#modal-cancel").onclick = ()=>{ hide(modal); res(false); };
-      $("#modal-ok").onclick = ()=>{ hide(modal); res(true); };
-      show(modal);
-    });
-  }
+   function confirmModal(message, {
+  okText="확인",
+  cancelText="취소",
+  title="확인",
+  okClass="btn-primary"         // ✅ 추가: OK 버튼 클래스 지정
+} = {}){
+  if (loadingEl) hide(loadingEl);
+  return new Promise(res=>{
+    modalTitle.textContent = title;
+    modalMsg.textContent = String(message).replace(/\n{3,}/g, "\n\n");
+    modalActions.innerHTML = `
+      <button id="modal-cancel" class="btn">${cancelText}</button>
+      <button id="modal-ok" class="${okClass}">${okText}</button>`;  // ✅ okClass 반영
+    $("#modal-cancel").onclick = ()=>{ hide(modal); res(false); };
+    $("#modal-ok").onclick = ()=>{ hide(modal); res(true); };
+    show(modal);
+  });
+}
   function choiceModal(message){
     if (loadingEl) hide(loadingEl);
     return new Promise(res=>{
@@ -712,6 +749,8 @@
 
   // ✅ 메세지함 진입 버튼
   $("#btn-messages").onclick = async ()=>{ await loadMessageList(); go("messages"); };
+  // ✅ 대화창 뒤로가기: 대화목록으로 복귀
+  $("#back-to-messages").onclick = async ()=>{ await loadMessageList(); go("messages"); };
   $("#to-menu-msg").onclick  = ()=> go("menu");
 
   // 프로필 저장/취소
@@ -845,29 +884,53 @@
 
   // ===================== 💬 메세지 기능 =====================
   async function loadMessageList(){
-    const wrap = $("#message-list");
-    wrap.innerHTML = "";
+  const wrap = $("#message-list");
+  wrap.innerHTML = "";
 
-    // 매치/요청/성사 상태인 사람만 나열
-    const snap = await get(r(`matches/${currentUid}`));
-    if(!snap.exists()){ $("#no-messages").classList.remove("hidden"); return; }
-    const data = snap.val();
-    const ids = Object.keys(data).filter(k=>{
+  const snap = await get(r(`matches/${currentUid}`));
+  if(!snap.exists()){ $("#no-messages").classList.remove("hidden"); return; }
+  const data = snap.val();
+  const ids = Object.keys(data)
+    .filter(k=>{
       const s = data[k]?.status;
       return s==="matched" || s==="meeting_requested" || s==="meeting_accepted";
-    }).sort((a,b)=>Number(a)-Number(b));
+    })
+    .sort((a,b)=>Number(a)-Number(b));
 
-    if(ids.length===0){ $("#no-messages").classList.remove("hidden"); return; }
-    $("#no-messages").classList.add("hidden");
+  if(ids.length===0){ $("#no-messages").classList.remove("hidden"); return; }
+  $("#no-messages").classList.add("hidden");
 
-    ids.forEach(other=>{
-      const div = document.createElement("div");
-      div.className="list-item";
-      div.innerHTML=`<div class="li-content"><strong>${other}번</strong></div>`;
-      div.onclick=()=>openChat(other);
-      wrap.appendChild(div);
-    });
-  }
+  // 상대별 미읽음 수 집계
+  const rows = await Promise.all(ids.map(async(other)=>{
+    const pairKey = makeChatKey(currentUid, other);
+    const msSnap = await get(r(`messages/${pairKey}`));
+    let unread = 0;
+    if(msSnap.exists()){
+      const msgs = msSnap.val();
+      for(const id in msgs){
+        const m = msgs[id];
+        if(m.to===currentUid && !m.read) unread++;
+      }
+    }
+    // HTML 문자열 반환
+    return `
+      <div class="list-item" data-open-chat="${other}">
+        <div class="li-content"><strong>${other}번</strong></div>
+        ${
+          unread>0
+          ? `<span class="badge badge-red">${unread}</span>`
+          : ``
+        }
+      </div>`;
+  }));
+
+  wrap.innerHTML = rows.join("");
+
+  // 클릭 핸들러
+  wrap.querySelectorAll("[data-open-chat]").forEach(div=>{
+    div.onclick = ()=> openChat(div.getAttribute("data-open-chat"));
+  });
+}
 
   async function openChat(otherUid){
     $("#chat-with").textContent = otherUid;
@@ -883,32 +946,43 @@
 
     // 실시간 메시지 표시
         chatListener = onValue(chatRef,(snap)=>{
-      chatBox.innerHTML="";
-      if(!snap.exists()) return;
-      const msgs = Object.entries(snap.val())
-        .map(([id,m])=>({id,...m}))
-        .sort((a,b)=>a.time-b.time);
+  chatBox.innerHTML="";
+  if(!snap.exists()) return;
+  const msgs = Object.entries(snap.val())
+    .map(([id,m])=>({id,...m}))
+    .sort((a,b)=>a.time-b.time);
 
-      msgs.forEach(m=>{
-        const el=document.createElement("div");
-        el.className = "bubble " + (m.from===currentUid ? "me":"other");
+  msgs.forEach(m=>{
+    // 행 컨테이너
+    const row = document.createElement("div");
+    row.className = "msg-row " + (m.from===currentUid ? "me":"other");
 
-        // 🔹 시간 포맷 (HH:MM)
-        const dt = new Date(m.time || 0);
-        const hh = String(dt.getHours()).padStart(2,"0");
-        const mm = String(dt.getMinutes()).padStart(2,"0");
-        const timeStr = `${hh}:${mm}`;
+    // 말풍선
+    const bubble = document.createElement("div");
+    bubble.className = "bubble " + (m.from===currentUid ? "me":"other");
+    bubble.textContent = m.text;
 
-        // 🔹 읽음표시 규칙
-        // - 내가 받은 메시지인데 아직 안읽음: " •"
-        // - 내가 보낸 메시지이고 상대가 읽음: " ✓"
-        let tail = "";
-        if(m.to===currentUid && !m.read) tail = " •";
-        if(m.from===currentUid && m.read) tail = " ✓";
+    // 시간/읽음 메타
+    const dt = new Date(m.time || 0);
+    const hh = String(dt.getHours()).padStart(2,"0");
+    const mm = String(dt.getMinutes()).padStart(2,"0");
+    const timeStr = `${hh}:${mm}`;
+    const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
+    const meta = document.createElement("span");
+    meta.className = "msg-meta";
+    meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
 
-        el.textContent = `${m.text}${tail}  ${timeStr}`;
-        chatBox.appendChild(el);
-      });
+    // 조립: 말풍선 옆에 메타
+    row.appendChild(bubble);
+    row.appendChild(meta);
+    chatBox.appendChild(row);
+  });
+
+  chatBox.scrollTop = chatBox.scrollHeight;
+
+  // 채팅창 열린 상태에서도 새로 온 메시지 즉시 읽음 처리
+  markAsRead(pairKey, currentUid);
+});
 
 
       chatBox.scrollTop = chatBox.scrollHeight;
@@ -952,23 +1026,28 @@
       return alertModal("매치된 사용자에게만 메세지를 보낼 수 있습니다.");
     }
 
-    // 내 전송 횟수(상대별) 제한: 10회
-    const pairKey = makeChatKey(currentUid, toUid);
-    const path = r(`messages/${pairKey}`);
-    const s = await get(path);
-    let myCount = 0;
-    if(s.exists()){
-      const vals = s.val();
-      for(const id in vals){ if(vals[id].from===currentUid) myCount++; }
-    }
-    if(myCount >= 10){
-      const ok = await confirmModal("더 많은 대화를 원하시면 나만남을 요청하세요!", { okText:"만남 요청하기", cancelText:"닫기", title:"한도 초과" });
-      if(오케이){
-        await set(r(`meetingRequests/${toUid}/${currentUid}`), {status:"pending", updatedAt: Date.now()});
-        await alertModal("만남 요청이 전송되었습니다!");
-      }
-      return;
-    }
+// 내 전송 횟수(상대별) 제한: 10회
+const pairKey = makeChatKey(currentUid, toUid);
+const path = r(`messages/${pairKey}`);
+const s = await get(path);
+let myCount = 0;
+if(s.exists()){
+  const vals = s.val();
+  for(const id in vals){ if(vals[id].from===currentUid) myCount++; }
+}
+if(myCount >= 10){
+  const ok = await confirmModal(
+    "더 많은 대화를 원하시면 만남을 요청하세요!",
+    { okText:"만남 요청하기", cancelText:"닫기", title:"한도 초과", okClass:"btn-success" } // ✅ 색상 통일
+  );
+  if(ok){
+    // ✅ 원본과 동일한 로직으로 '만남 요청'
+    await set(r(`meetingRequests/${toUid}/${currentUid}`), {status:"pending", updatedAt: Date.now()});
+    await update(r(`matches/${currentUid}/${toUid}`), {status:"meeting_requested", updatedAt: Date.now()});
+    await alertModal("만남 요청이 전송되었습니다!");
+  }
+  return;
+}
 
     // 저장 (단일 경로; 양쪽 공용 pairKey)
     const id = Date.now()+"_"+Math.random().toString(36).slice(2,7);
@@ -1539,4 +1618,5 @@
 </body>
 
 </html>
+
 
