@@ -984,13 +984,6 @@
   markAsRead(pairKey, currentUid);
 });
 
-
-      chatBox.scrollTop = chatBox.scrollHeight;
-
-     // ✅ 채팅창 열린 상태에서도 새로 온 메시지 즉시 읽음 처리
-     markAsRead(pairKey, currentUid);
-    });
-
     // 읽음 처리
     await markAsRead(pairKey, currentUid);
 
@@ -1038,7 +1031,7 @@ if(s.exists()){
 if(myCount >= 10){
   const ok = await confirmModal(
     "더 많은 대화를 원하시면 만남을 요청하세요!",
-    { okText:"만남 요청하기", cancelText:"닫기", title:"한도 초과", okClass:"btn-success" } // ✅ 색상 통일
+    { okText:"만남 요청하기", cancelText:"닫기", title:"메세지 한도 초과", okClass:"btn-success" } // ✅ 색상 통일
   );
   if(ok){
     // ✅ 원본과 동일한 로직으로 '만남 요청'
@@ -1618,5 +1611,6 @@ if(myCount >= 10){
 </body>
 
 </html>
+
 
 
