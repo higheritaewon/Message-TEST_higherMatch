@@ -1052,46 +1052,45 @@ function formatTime12(dt){
     const chatRef = r(`messages/${pairKey}`);
 
     // 실시간 메시지 표시
-        chatListener = onValue(chatRef,(snap)=>{
-  chatBox.innerHTML="";
+chatListener = onValue(chatRef, (snap)=>{
+  chatBox.innerHTML = "";
   if(!snap.exists()) return;
+
   const msgs = Object.entries(snap.val())
-    .map(([id,m])=>({id,...m}))
-    .sort((a,b)=>a.time-b.time);
+    .map(([id, m]) => ({ id, ...m }))
+    .sort((a,b) => a.time - b.time);
 
   msgs.forEach(m=>{
-  const row = document.createElement("div");
-  row.className = "msg-row " + (m.from===currentUid ? "me" : "other");
+    const row = document.createElement("div");
+    row.className = "msg-row " + (m.from===currentUid ? "me" : "other");
 
-  // 말풍선 래퍼 (폭 제한 담당)
-  const wrap = document.createElement("div");
-  wrap.className = "msg-wrap";
+    // 말풍선 래퍼
+    const wrap = document.createElement("div");
+    wrap.className = "msg-wrap";
 
-  // 말풍선
-  const bubble = document.createElement("div");
-  bubble.className = "bubble " + (m.from===currentUid ? "me" : "other");
-  bubble.textContent = m.text;
+    // 말풍선
+    const bubble = document.createElement("div");
+    bubble.className = "bubble " + (m.from===currentUid ? "me" : "other");
+    bubble.textContent = m.text || "";
 
-  // 시간/읽음
-  const dt = new Date(m.time || 0);
-  const timeStr = formatTime12(dt);   // ✅ 오전/오후 12시간제 표시
-  const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
-  meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
-  const meta = document.createElement("span");
-  meta.className = "msg-meta";
-  
+    // 시간/읽음 (12시간 표기)
+    const meta = document.createElement("span");
+    meta.className = "msg-meta";
+    const dt = new Date(m.time || 0);
+    const timeStr = formatTime12(dt);
+    const readStr = (m.from===currentUid && m.read) ? " · 읽음" : "";
+    meta.textContent = `${timeStr}${readStr}`;
 
-  // 조립: [wrap(bubble)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
-  wrap.appendChild(bubble);
-  row.appendChild(wrap);
-  row.appendChild(meta);
-
-  chatBox.appendChild(row);
-});
+    // 조립
+    wrap.appendChild(bubble);
+    row.appendChild(wrap);
+    row.appendChild(meta);
+    chatBox.appendChild(row);
+  });
 
   chatBox.scrollTop = chatBox.scrollHeight;
 
-  // 채팅창 열린 상태에서도 새로 온 메시지 즉시 읽음 처리
+  // 채팅창이 열려 있을 때 수신 메시지들을 읽음 처리
   markAsRead(pairKey, currentUid);
 });
 
@@ -1748,5 +1747,6 @@ if(myCount >= 7){
 </body>
 
 </html>
+
 
 
