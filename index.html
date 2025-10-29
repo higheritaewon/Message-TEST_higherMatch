@@ -70,6 +70,13 @@
   .btn-focus{outline:2px solid var(--yellow)}
   .btn-danger{background:var(--danger)}
   .btn-success{background:var(--success); color:#0e2824}
+  /* ✅ 채팅 보내기 버튼 전용 색상 오버라이드 */
+  #chat-send{
+  background:#275cd6;      /* 원하는 색상으로 변경 */
+  color:#ffffff;
+  border-color:#8dadf7;
+  }
+#chat-send:hover{ filter:brightness(1.50); }
   .badge{
     display:inline-block; padding:2px 8px; border:1px solid rgba(255,255,255,.15);
     border-radius:999px; font-size:18px;
@@ -78,9 +85,14 @@
   /* ✅ 대화목록용 빨간 뱃지 */
   .badge-red{
     background:#ff6b6b;          
-    border-color:rgba(255,255,255,.15);
-    color:#fff;
+    border-color:rgba(255,255,255,.25);
+    color:#ffffff;
   }
+  .menu-msg-button #msg-badge {
+  background:#ff6b6b;
+  color:#ffffff;
+  border-color:rgba(255,255,255,.25);
+}
   .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
   .tile{
     display:flex;flex-direction:column;gap:8px;align-items:center;justify-content:center;
@@ -182,18 +194,12 @@
   display:inline-block;
   max-width:100%;
   padding:10px 12px;
-  border-radius:50px;             /* 둥근 모서리 */
+  border-radius:20px;             /* 둥근 모서리 */
   word-break:break-word;
   overflow-wrap:break-word;
   white-space:pre-wrap;
 }
 
-/* 래퍼는 꼬리 안 잘리게 */
-.msg-wrap{ 
-  max-width:76%;
-  display:block;
-  overflow: visible;              /* ✅꼬리 보이도록 */
-}
 
 /* 색상(원하는 값으로 유지) */
 .bubble.me{
@@ -702,6 +708,17 @@
     if(fromLike){ fromLike.value = currentUid ? `내 번호: ${currentUid}` : ""; }
   }
 
+// ✅ 12시간(오전/오후) 포맷터
+function formatTime12(dt){
+  let h = dt.getHours();
+  const m = dt.getMinutes();
+  const ampm = (h < 12) ? "오전" : "오후";
+  h = h % 12;
+  if (h === 0) h = 12;           // 0시는 12시로 표시
+  const mm = String(m).padStart(2, "0");
+  return `${ampm} ${h}:${mm}`;
+}
+  
   // ===================== DB 유틸 =====================
   const r = (p)=> ref(db, `events/${EVENT_ID}/${p}`);
   async function getUser(uid){ const snap = await get(r(`users/${uid}`)); return snap.exists()? snap.val(): null; }
@@ -1057,16 +1074,15 @@
 
   // 시간/읽음
   const dt = new Date(m.time || 0);
-  const hh = String(dt.getHours()).padStart(2,"0");
-  const mm = String(dt.getMinutes()).padStart(2,"0");
-  const timeStr = `${hh}:${mm}`;
+  const timeStr = formatTime12(dt);   // ✅ 오전/오후 12시간제 표시
   const readStr = (m.from===currentUid && m.read) ? "읽음" : "";
+  meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
   const meta = document.createElement("span");
   meta.className = "msg-meta";
-  meta.textContent = readStr ? `${timeStr} · ${readStr}` : `${timeStr}`;
+  
 
-  // 조립: [wrap(풍선껌)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
-  wrap.appendChild(풍선껌);
+  // 조립: [wrap(bubble)] [meta]  ⇒ 카톡처럼 말풍선 오른쪽에 시간
+  wrap.appendChild(bubble);
   row.appendChild(wrap);
   row.appendChild(meta);
 
@@ -1128,7 +1144,7 @@ if(myCount >= 7){
     "더 많은 대화를 원하시면 만남을 요청하세요!",
     { okText:"만남 요청하기", cancelText:"닫기", title:"메세지 한도 초과", okClass:"btn-success" } // ✅ 색상 통일
   );
-  if(오케이){
+  if(ok){
     // ✅ 원본과 동일한 로직으로 '만남 요청'
     await set(r(`meetingRequests/${toUid}/${currentUid}`), {status:"pending", updatedAt: Date.now()});
     await update(r(`matches/${currentUid}/${toUid}`), {status:"meeting_requested", updatedAt: Date.now()});
@@ -1735,3 +1751,4 @@ if(myCount >= 7){
 
 
 이렇게 되면 다 반영되고 문제 없는 거 맞지?
+
